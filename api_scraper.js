@@ -29,19 +29,24 @@ function jaxbVal(obj) {
 }
 
 function parseAd(ad) {
-  // Extract location
+  // Location: ad-address has precise radius, fallback to locations
+  const adAddr = ad['ad-address'] || {};
   const locObj = ad['locations']?.['location'];
   const locArr = Array.isArray(locObj) ? locObj : (locObj ? [locObj] : []);
   const firstLoc = locArr[0] || {};
   
-  // Extract thumbnail
+  // Distance: ad-address.radius is most precise
+  let distance = jaxbVal(adAddr['radius']) || jaxbVal(firstLoc['radius']) || null;
+  if (distance !== null) distance = parseFloat(distance);
+  
+  // Thumbnail
   const picsObj = ad['pictures']?.['picture'];
   const picsArr = Array.isArray(picsObj) ? picsObj : (picsObj ? [picsObj] : []);
   const picLinks = jaxbVal(picsArr[0]?.['link']);
   const picArr = Array.isArray(picLinks) ? picLinks : (picLinks ? [picLinks] : []);
   const thumb = picArr.find(l => l?.rel === 'thumbnail');
   
-  // Extract URL (public website link)
+  // URL (public website link)
   const links = ad['link'];
   const linkArr = Array.isArray(links) ? links : (links ? [links] : []);
   const urlObj = linkArr.find(l => l?.rel === 'self-public-website');
@@ -51,7 +56,7 @@ function parseAd(ad) {
     price: jaxbVal(ad['price']?.['amount']),
     priceType: jaxbVal(ad['price']?.['price-type']),
     location: jaxbVal(firstLoc['localized-name']),
-    distance: jaxbVal(firstLoc['radius']),
+    distance,
     url: urlObj?.href || null,
     thumb: thumb?.href || null,
     id: jaxbVal(ad['id'])
@@ -62,7 +67,9 @@ async function search(query, locationId = 1921, maxPrice = null, maxDistance = n
   const path = `/ads.json?q=${encodeURIComponent(query)}&locationId=${locationId}&size=50`;
   const parsed = await apiGet(path);
   
-  const adsData = parsed[NS + 'ads']?.value;
+  const adsWrapper = parsed[NS + 'ads'];
+  if (!adsWrapper) throw new Error('No ads wrapper');
+  const adsData = adsWrapper?.value;
   if (!adsData) throw new Error('No ads data');
   
   let adArray = adsData['ad'];
@@ -75,7 +82,7 @@ async function search(query, locationId = 1921, maxPrice = null, maxDistance = n
   }
   
   if (maxDistance !== null) {
-    results = results.filter(a => a.distance !== null && a.distance <= maxDistance);
+    results = results.filter(a => a.distance !== null && parseFloat(a.distance) <= maxDistance);
   }
   
   return results;
