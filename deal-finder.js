@@ -541,18 +541,22 @@ async function main() {
     visionResults = await runVisionAnalysis(allDeals);
   }
 
-  // Filter premium categories (VR, Racing) to only deals with vision score ≥7 AND real photos
-  const MIN_SCORE = 7;
-  const premiumDeals = allDeals.filter(d => {
+  // Only post deals with vision score ≥8 (great deal or impossibly cheap)
+  // Score 10 = impossibly cheap, 8-9 = great deal, 4-6 = fair, 1-3 = overpriced
+  // Without vision analysis, only post premium categories (VR/Racing) — high value items need verification
+  const MIN_SCORE = 8;
+  const filteredDeals = allDeals.filter(d => {
+    if (doAnalyzeImages) {
+      const vision = visionResults[d.id];
+      if (!vision) return false;
+      if (!vision.match(/^PHOTO\s*\|/i)) return false;
+      const match = vision.match(/(\d+)\/10/);
+      if (!match) return false;
+      return parseInt(match[1]) >= MIN_SCORE;
+    }
+    // No vision = only premium categories post (VR/Racing need photo verification)
     const isPremium = d.categoryLabel.startsWith('🥽') || d.categoryLabel.startsWith('🏎️');
-    if (!isPremium) return true;
-    const vision = visionResults[d.id];
-    if (!vision) return false;
-    // Must start with PHOTO | (real product image), not "Stock |"
-    if (!vision.match(/^PHOTO\s*\|/i)) return false;
-    const match = vision.match(/(\d+)\/10/);
-    if (!match) return false;
-    return parseInt(match[1]) >= MIN_SCORE;
+    return isPremium;
   });
 
   // Print all deals (dry run shows everything, with scores)
@@ -585,8 +589,8 @@ async function main() {
   }
   saveSeenAds(seen);
 
-  // Only post deals that pass the score filter to Discord
-  await reportDeals(premiumDeals);
+  // Only post deals that pass the score filter
+  await reportDeals(filteredDeals);
 }
 
 main().catch(console.error);
