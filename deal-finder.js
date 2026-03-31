@@ -53,6 +53,33 @@ const CORE_CATEGORIES = [
 const day = new Date().getDate();
 const CATEGORIES = CORE_CATEGORIES[day % 2];
 
+// Bonus categories — rotate daily on a 3-day cycle
+const BONUS_CATEGORIES = [
+  // Speakers / Subwoofers
+  {
+    query: 'lautsprecher subwoofer',
+    label: '🔊 Lautsprecher+Subwoofer',
+    maxPrice: 250,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kabel', 'nur', 'led', 'party', 'mini', 'billig', 'computer', 'pc-lautsprecher', 'laptop'],
+  },
+  // Bikes — only quality brands, AI filters the rest
+  {
+    query: 'fahrrad mountainbike rennrad',
+    label: '🚲 Fahrräder',
+    maxPrice: 500,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kinder', '10 zoll', '12 zoll', '14 zoll', '16 zoll', '18 zoll', '20 zoll', '24 zoll', 'damenn', 'damenrad', 'herrenrad einfache', 'cityrad'],
+  },
+  // DDR4 RAM
+  {
+    query: 'ddr4 ram',
+    label: '🧠 DDR4 RAM',
+    maxPrice: 80,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'ddr3', 'ddr5', 'sodimm', 'laptop ram', 'server', 'ecc'],
+  },
+];
+const BONUS = BONUS_CATEGORIES[day % 3];
+const ALL_CATEGORIES = [...CATEGORIES, BONUS];
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function apiGet(path, retries = 3) {
@@ -331,7 +358,7 @@ async function main() {
 
   if (args.includes('--categories')) {
     console.log('Configured categories:');
-    for (const c of CATEGORIES) {
+    for (const c of ALL_CATEGORIES) {
       console.log(`  ${c.label}: "${c.query}" (max €${c.maxPrice})`);
     }
     return;
@@ -360,9 +387,9 @@ async function main() {
   const allSeenThisRun = new Set();
   let categoryCount = 0;
 
-  for (const cat of CATEGORIES) {
+  for (const cat of ALL_CATEGORIES) {
     categoryCount++;
-    process.stdout.write(`[${categoryCount}/${CATEGORIES.length}] ${cat.label}...`);
+    process.stdout.write(`[${categoryCount}/${ALL_CATEGORIES.length}] ${cat.label}...`);
     const { deals, seenThisRun } = await fetchCategory(cat, seenIds);
     
     for (const id of seenThisRun) allSeenThisRun.add(id);
