@@ -88,7 +88,11 @@ Tracks:
 - `query` / `locationId` / `maxPrice` / `maxDistance`
 - `totalSaved` / `totalSeen`
 
-## Data
+## API Notes
 
-The API is an undocumented Kleinanzeigen endpoint. Auth header is pre-shared.
-Rate limits are unknown — add delays between pages if crawling large result sets.
+- **No query = 500 error** — the `q` parameter is required
+- **Rate limits unknown** — add delays between pages if crawling large result sets
+- **JAXB response format** — every level has `{value: ...}` wrapping; only ONE `.value` in chain
+- **Distance is a string** — `ad-address.radius` returns `"1.07"` (string), compare with `parseFloat()`
+- **Picture links** — each picture has multiple link rels: `thumbnail`, `large`, `extraLarge`, `XXL`
+- **Category** — only leaf category is returned, not the full breadcrumb path in the API response
