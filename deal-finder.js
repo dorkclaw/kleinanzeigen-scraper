@@ -29,21 +29,21 @@ const ADS_DIR = path.join(__dirname, 'ads');
 // Core categories — focused on useful things that show up as genuine deals
 // Split into two groups for alternating days
 const CORE_CATEGORIES = [
-  // Group A (run on odd days)
+  // Group A (run on odd days) — tech/gear
   [
-    { query: 'kinderfahrrad',    label: '🚴 Kinderfahrrad', maxPrice: 100, goodKeywords: ['woom', 'puky', 'giant', 'cape', 'bulls', 'nahan'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'kinderwagen',      label: '👶 Kinderwagen',   maxPrice: 80,  goodKeywords: ['maxi-cosi', 'cybex', 'joolz', 'bugaboo', 'stokke', 'mutsy', 'hauck'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'fahrrad',          label: '🚴 Fahrrad',        maxPrice: 150, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'rahmenbruch', 'gestohlen', 'suche'] },
-    { query: 'werkzeug',         label: '🔧 Werkzeug',       maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'schreibtisch ikea',label: '🪑 Schreibtisch',  maxPrice: 60,  goodKeywords: ['ikea'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'pc komponenten',    label: '🔧 PC-Komponenten',      maxPrice: 150, goodKeywords: ['gpu', 'grafikkarte', 'ram', 'ssd', 'nvme', 'cpu', 'prozessor'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'headset',           label: '🎧 Headsets',            maxPrice: 60,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
   ],
-  // Group B (run on even days)
+  // Group B (run on even days) — study/desk
   [
-    { query: 'kindersitz',        label: '🧸 Kindersitz',    maxPrice: 80,  goodKeywords: ['maxi-cosi', 'cybex', 'cybex'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'couch sofa',        label: '🛋️ Sofa/Couch',    maxPrice: 100, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'staubsauger dyson', label: '🧹 Staubsauger',   maxPrice: 80,  goodKeywords: ['dyson', 'miele', 'kärcher'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'playstation 4',     label: '🎮 PS4/PS5',        maxPrice: 120, goodKeywords: ['playstation', 'ps4', 'ps5'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'laptop',           label: '💻 Laptops',        maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-'] },
+    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 300, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-'] },
+    { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  goodKeywords: ['informatik', 'mathematik', 'algorithm', 'programmierung', 'datenbank', 'netzwerk'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, goodKeywords: ['ti ', 'nspire', 'hp prime', 'casio', 'graphikrechner'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 100, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'werkzeug',          label: '🔧 Werkzeug',            maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
   ],
 ];
 
