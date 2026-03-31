@@ -78,8 +78,39 @@ const BONUS_CATEGORIES = [
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'ddr3', 'ddr5', 'sodimm', 'laptop ram', 'server', 'ecc'],
   },
 ];
+
+// Always-on bonus categories (searched every run, not rotated)
+const ALWAYS_BONUS = [
+  // VR headsets — only post scores ≥7
+  {
+    query: 'vr headset',
+    label: '🥽 VR Headsets',
+    maxPrice: 200,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'sonderangebot', 'aktion', 'angebot', 'test', 'brille'],
+  },
+  {
+    query: 'oculus quest',
+    label: '🥽 Oculus/Meta Quest',
+    maxPrice: 200,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'sonderangebot', 'aktion', 'test', 'brille'],
+  },
+  // Racing wheels — only post scores ≥7
+  {
+    query: 'sim racing lenkrad',
+    label: '🏎️ Sim Racing Wheels',
+    maxPrice: 300,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'cockpit', 'sitz', 'halterung', 'prüfstand', 'rollentrainer', 'rahmen', 'montage'],
+  },
+  {
+    query: 'logitech g29',
+    label: '🏎️ Logitech G29/G923',
+    maxPrice: 250,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'cockpit', 'sitz', 'halterung'],
+  },
+];
+
 const BONUS = BONUS_CATEGORIES[day % 3];
-const ALL_CATEGORIES = [...CATEGORIES, BONUS];
+const ALL_CATEGORIES = [...CATEGORIES, BONUS, ...ALWAYS_BONUS];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -380,7 +411,11 @@ async function runVisionAnalysis(deals) {
       const isBike = deal.categoryLabel.toLowerCase().includes('fahrrad');
       const priceContext = isBike
         ? `Typical German used bike prices: city/trekking €100-300, MTB €150-500, road €200-800, fixies €50-150.`
-        : `Typical German resale prices: monitors €30-150, keyboards/mice €10-40, headsets €20-80, tablets €50-200, PC components €20-100.`;
+        : deal.categoryLabel.includes('VR ')
+        ? `Typical VR headset resale in Germany: Oculus/Meta Quest €50-300, Valve Index €400-600, PSVR €30-150.`
+        : deal.categoryLabel.includes('Racing')
+        ? `Typical racing wheel resale: Logitech G29/G923 €100-200, Thrustmaster T300 €150-250, Fanatec €200-500, standalone wheels €30-100.`
+        : `Typical German resale: monitors €30-150, keyboards/mice €10-40, headsets €20-80, tablets €50-200, PC components €20-100.`;
       const prompt = `Format: "PHOTO | SCORE/10 | reason" — max 200 chars.\n` +
         `Score 10 = impossibly cheap, 7-9 = great deal, 4-6 = fair, 1-3 = overpriced.\n` +
         `1) Real photo or stock? 2) ${isBike ? 'Bike type/brand?' : 'Product type?'} 3) ${priceContext} At €${price}, what's the score?`;
@@ -487,7 +522,21 @@ async function main() {
     visionResults = await runVisionAnalysis(allDeals);
   }
 
-  // Print deals
+  // Filter premium categories (VR, Racing) to only deals with vision score ≥7 AND real photos
+  const MIN_SCORE = 7;
+  const premiumDeals = allDeals.filter(d => {
+    const isPremium = d.categoryLabel.startsWith('🥽') || d.categoryLabel.startsWith('🏎️');
+    if (!isPremium) return true;
+    const vision = visionResults[d.id];
+    if (!vision) return false;
+    // Must start with PHOTO | (real product image), not "Stock |"
+    if (!vision.match(/^PHOTO\s*\|/i)) return false;
+    const match = vision.match(/(\d+)\/10/);
+    if (!match) return false;
+    return parseInt(match[1]) >= MIN_SCORE;
+  });
+
+  // Print all deals (dry run shows everything, with scores)
   console.log();
   console.log('--- DEALS ---');
   for (const d of allDeals) {
@@ -517,7 +566,8 @@ async function main() {
   }
   saveSeenAds(seen);
 
-  await reportDeals(allDeals);
+  // Only post deals that pass the score filter to Discord
+  await reportDeals(premiumDeals);
 }
 
 main().catch(console.error);
