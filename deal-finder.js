@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -295,8 +296,9 @@ async function fetchCategory(cat, seenIds) {
       // Check if likely a deal
       if (!isLikelyDeal(ad, cat)) continue;
 
-      // Get thumbnail
+      // Get thumbnail and XXL image
       let thumbnail = null;
+      let xxlImage = null;
       try {
         const pics = ad.pictures?.picture || ad.pictures || [];
         const picArray = Array.isArray(pics) ? pics : [pics];
@@ -304,12 +306,12 @@ async function fetchCategory(cat, seenIds) {
           const links = p.link || [];
           const linkArr = Array.isArray(links) ? links : [links];
           for (const l of linkArr) {
-            if (l.rel === 'thumbnail' || (l.$ && l.$.rel === 'thumbnail')) {
-              thumbnail = l.href || l.$?.href || null;
-              break;
-            }
+            const href = l.href || l.$?.href || '';
+            const rel = l.rel || l.$?.rel || '';
+            if (rel === 'thumbnail' && !thumbnail) thumbnail = href;
+            if ((rel === 'XXL' || rel === 'extraLarge') && !xxlImage) xxlImage = href;
           }
-          if (thumbnail) break;
+          if (thumbnail && xxlImage) break;
         }
       } catch {}
 
@@ -332,6 +334,7 @@ async function fetchCategory(cat, seenIds) {
         currency: ad.price?.['currency-iso-code']?.value?.value || ad.currency || 'EUR',
         url,
         thumbnail,
+        xxlImage,
         categoryLabel: cat.label,
         ad: {
           id,
@@ -353,6 +356,65 @@ async function fetchCategory(cat, seenIds) {
   return { deals, seenThisRun };
 }
 
+// ─── VISION IMAGE ANALYSIS ───────────────────────────────────────────────────
+
+const ANALYZE_IMAGE_SCRIPT = path.join(__dirname, 'analyze_image.py');
+
+/**
+ * Analyze images for a batch of deals using OpenRouter Gemini Vision.
+ * Runs in parallel, returns map of dealId → vision description.
+ */
+async function runVisionAnalysis(deals) {
+  const dealsWithImages = deals.filter(d => d.xxlImage);
+  if (dealsWithImages.length === 0) {
+    console.log('  (no images to analyze)');
+    return {};
+  }
+
+  console.log(`  Analyzing ${dealsWithImages.length} image(s) via Gemini Vision...`);
+
+  const results = {};
+  const promises = dealsWithImages.map(deal =>
+    new Promise((resolve) => {
+      const prompt = deal.categoryLabel.toLowerCase().includes('fahrrad')
+        ? 'Is this a real bike photo? Is it a stock/placeholder image? Answer YES if real bike shown, NO if generic stock photo or unclear. Also note the bike type/color if recognizable.'
+        : 'Briefly describe this product photo. Is it a real product image or a stock/generic photo? Under 200 characters.';
+
+      const python = spawn('python3', [ANALYZE_IMAGE_SCRIPT, deal.xxlImage, prompt], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let stdout = '';
+      let stderr = '';
+      python.stdout.on('data', d => stdout += d.toString());
+      python.stderr.on('data', d => stderr += d.toString());
+
+      python.on('close', (code) => {
+        if (code === 0 && stdout.trim()) {
+          results[deal.id] = stdout.trim();
+        } else {
+          console.error(`  Vision error for ${deal.id}: ${stderr || 'non-zero exit'}`);
+        }
+        resolve();
+      });
+
+      python.on('error', (err) => {
+        console.error(`  Failed to spawn python for ${deal.id}: ${err.message}`);
+        resolve();
+      });
+
+      // 25s timeout
+      setTimeout(() => {
+        python.kill();
+        resolve();
+      }, 25000);
+    })
+  );
+
+  await Promise.all(promises);
+  return results;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -366,10 +428,12 @@ async function main() {
 
   const dryRun = args.includes('--dryRun=true');
   const resetSeen = args.includes('--reset-seen');
+  const doAnalyzeImages = args.includes('--analyze-images');
 
   console.log('=== Kleinanzeigen Deal Finder ===');
   console.log(`Time: ${new Date().toISOString()}`);
   console.log(`Dry run: ${dryRun}`);
+  console.log(`Analyze images: ${doAnalyzeImages}`);
   console.log(`Location: Aachen (${LOCATION_ID})`);
   console.log();
 
@@ -411,6 +475,13 @@ async function main() {
     return;
   }
 
+  // Analyze images via vision if requested
+  let visionResults = {};
+  if (doAnalyzeImages) {
+    console.log();
+    visionResults = await runVisionAnalysis(allDeals);
+  }
+
   // Print deals
   console.log();
   console.log('--- DEALS ---');
@@ -419,9 +490,11 @@ async function main() {
     // Strip HTML tags and truncate
     const plainDesc = rawDesc.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const shortDesc = plainDesc.length > 200 ? plainDesc.slice(0, 200) + '…' : plainDesc;
+    const vision = visionResults[d.id];
 
     console.log(`  [${d.categoryLabel}] ${d.title} — ${formatPrice(d.ad)} | 📍 ${d.ad.state || '?'} (${d.ad.distance}km)`);
     if (shortDesc) console.log(`    📝 ${shortDesc}`);
+    if (vision) console.log(`    👁️  ${vision}`);
     console.log(`    ${d.url}`);
     if (d.thumbnail) console.log(`    🖼️  ${d.thumbnail}`);
     console.log();
