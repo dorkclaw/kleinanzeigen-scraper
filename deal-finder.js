@@ -91,8 +91,26 @@ const ALWAYS_BONUS = [
   {
     query: 'oculus quest',
     label: '🥽 Oculus/Meta Quest',
-    maxPrice: 200,
+    maxPrice: 250,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'sonderangebot', 'aktion', 'test', 'brille'],
+  },
+  {
+    query: 'valve index',
+    label: '🕹️ Valve Index',
+    maxPrice: 500,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'brille', ' einzeln', 'nur zubehör'],
+  },
+  {
+    query: 'bigscreen beyond',
+    label: '🖥️ Bigscreen Beyond',
+    maxPrice: 500,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test'],
+  },
+  {
+    query: 'psvr',
+    label: '🎮 PSVR',
+    maxPrice: 200,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test'],
   },
   // Racing wheels — only post scores ≥7
   {
@@ -409,10 +427,11 @@ async function runVisionAnalysis(deals) {
     new Promise((resolve) => {
       const price = deal.price;
       const isBike = deal.categoryLabel.toLowerCase().includes('fahrrad');
+      const isVR = deal.categoryLabel.includes('VR') || deal.categoryLabel.includes('Valve Index') || deal.categoryLabel.includes('Bigscreen');
       const priceContext = isBike
         ? `Typical German used bike prices: city/trekking €100-300, MTB €150-500, road €200-800, fixies €50-150.`
-        : deal.categoryLabel.includes('VR ')
-        ? `Typical VR headset resale in Germany: Oculus/Meta Quest €50-300, Valve Index €400-600, PSVR €30-150.`
+        : isVR
+        ? `Typical VR resale Germany: Meta Quest 2/3 €100-300, Valve Index €400-600, Bigscreen Beyond €300-500, PSVR2 €200-350.`
         : deal.categoryLabel.includes('Racing')
         ? `Typical racing wheel resale: Logitech G29/G923 €100-200, Thrustmaster T300 €150-250, Fanatec €200-500, standalone wheels €30-100.`
         : `Typical German resale: monitors €30-150, keyboards/mice €10-40, headsets €20-80, tablets €50-200, PC components €20-100.`;
