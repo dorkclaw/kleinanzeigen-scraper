@@ -21,7 +21,7 @@ const AUTH = 'Basic YW5kcm9pZDpUYVI2MHBFdHRZ';
 const USER_AGENT = 'okhttp/4.10.0';
 const NS = '{http://www.ebayclassifiedsgroup.com/schema/ad/v1}';
 const LOCATION_ID = 1921; // Aachen
-const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || process.env.KLEINANZEIGEN_DISCORD_WEBHOOK;
+
 const SEEN_FILE = path.join(__dirname, 'seen-ads.json');
 const ADS_DIR = path.join(__dirname, 'ads');
 
@@ -183,7 +183,7 @@ function formatPrice(ad) {
 
 // ─── DISCORD REPORTER ────────────────────────────────────────────────────────
 
-async function sendDiscord(deals) {
+async function reportDeals(deals) {
   if (deals.length === 0) {
     console.log('No deals found.');
     return;
@@ -399,16 +399,7 @@ async function main() {
   }
   saveSeenAds(seen);
 
-  // Send to Discord
-  if (DISCORD_WEBHOOK) {
-    console.log();
-    console.log('Sending to Discord...');
-    await sendDiscord(allDeals);
-    console.log('Done!');
-  } else {
-    console.log();
-    console.log('No DISCORD_WEBHOOK set. Set KLEINANZEIGEN_DISCORD_WEBHOOK to get Discord notifications.');
-  }
+  await reportDeals(allDeals);
 }
 
 main().catch(console.error);
