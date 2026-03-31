@@ -234,7 +234,11 @@ async function main() {
     }
   });
 
-  const query = flags.query || 'fahrrad';
+  const query = flags.query;
+  if (!query) {
+    console.error('ERROR: --query is required (e.g., --query=fahrrad)');
+    process.exit(1);
+  }
   const locationId = parseInt(flags.locationId || '1921');
   const maxPrice = flags.maxPrice ? parseInt(flags.maxPrice) : null;
   const maxDistance = flags.maxDistance ? parseFloat(flags.maxDistance) : null;
