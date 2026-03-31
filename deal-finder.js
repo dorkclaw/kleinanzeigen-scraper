@@ -376,9 +376,15 @@ async function runVisionAnalysis(deals) {
   const results = {};
   const promises = dealsWithImages.map(deal =>
     new Promise((resolve) => {
-      const prompt = deal.categoryLabel.toLowerCase().includes('fahrrad')
-        ? 'Is this a real bike photo? Is it a stock/placeholder image? Answer YES if real bike shown, NO if generic stock photo or unclear. Also note the bike type/color if recognizable.'
-        : 'Briefly describe this product photo. Is it a real product image or a stock/generic photo? Under 200 characters.';
+      const price = deal.price;
+      const isBike = deal.categoryLabel.toLowerCase().includes('fahrrad');
+      const priceContext = isBike
+        ? `Used bikes in Germany typically: city/trekking €100-300, MTB €150-500, road €200-800. ` +
+          `At €${price}, is this likely a GOOD DEAL (well below market), FAIR, or OVERPRICED?`
+        : `Typical German resale: monitors €30-150, keyboards/mice €10-40, headsets €20-80. ` +
+          `At €${price}, GOOD DEAL / FAIR / OVERPRICED?`;
+      const prompt = `Format: "PHOTO | DEAL verdict | reason" — max 180 chars total.\n` +
+        `1) Real photo or stock? 2) ${isBike ? 'Bike type/brand?' : 'Product type?'} 3) ${priceContext}`;
 
       const python = spawn('python3', [ANALYZE_IMAGE_SCRIPT, deal.xxlImage, prompt], {
         stdio: ['ignore', 'pipe', 'pipe']
