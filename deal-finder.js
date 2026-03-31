@@ -21,6 +21,7 @@ const AUTH = 'Basic YW5kcm9pZDpUYVI2MHBFdHRZ';
 const USER_AGENT = 'okhttp/4.10.0';
 const NS = '{http://www.ebayclassifiedsgroup.com/schema/ad/v1}';
 const LOCATION_ID = 1921; // Aachen
+const POSTAL_CODE = '52074'; // Aachen zipcode
 
 const SEEN_FILE = path.join(__dirname, 'seen-ads.json');
 const ADS_DIR = path.join(__dirname, 'ads');
@@ -29,7 +30,16 @@ const ADS_DIR = path.join(__dirname, 'ads');
 // Core categories — focused on useful things that show up as genuine deals
 // Split into two groups for alternating days
 const CORE_CATEGORIES = [
-  // Group A (run on odd days) — tech/gear
+  // Group 0 (run on even days: 2,4,6,...30) — study/desk
+  [
+    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 300, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-'] },
+    { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  goodKeywords: ['informatik', 'mathematik', 'algorithm', 'programmierung', 'datenbank', 'netzwerk'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, goodKeywords: ['ti ', 'nspire', 'hp prime', 'casio', 'graphikrechner'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 0,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'werkzeug',          label: '🔧 Werkzeug',            maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy'] },
+    { query: 'hantel',            label: '🏋️ Hanteln (1-10kg)',    maxPrice: 30,  goodKeywords: ['1kg', '2kg', '3kg', '4kg', '5kg', '6kg', '7kg', '8kg', '9kg', '10kg', 'set', 'satz'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+  ],
+  // Group 1 (run on odd days: 1,3,5,...31) — tech/gear
   [
     { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
@@ -37,17 +47,10 @@ const CORE_CATEGORIES = [
     { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'headset',           label: '🎧 Headsets',            maxPrice: 60,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
   ],
-  // Group B (run on even days) — study/desk
-  [
-    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 300, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-'] },
-    { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  goodKeywords: ['informatik', 'mathematik', 'algorithm', 'programmierung', 'datenbank', 'netzwerk'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, goodKeywords: ['ti ', 'nspire', 'hp prime', 'casio', 'graphikrechner'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 100, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'werkzeug',          label: '🔧 Werkzeug',            maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-  ],
 ];
 
 // Pick group based on day of month (odd/even)
+// CORE_CATEGORIES[0] = even days, CORE_CATEGORIES[1] = odd days
 const day = new Date().getDate();
 const CATEGORIES = CORE_CATEGORIES[day % 2];
 
