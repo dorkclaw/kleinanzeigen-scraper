@@ -379,12 +379,11 @@ async function runVisionAnalysis(deals) {
       const price = deal.price;
       const isBike = deal.categoryLabel.toLowerCase().includes('fahrrad');
       const priceContext = isBike
-        ? `Used bikes in Germany typically: city/trekking €100-300, MTB €150-500, road €200-800. ` +
-          `At €${price}, is this likely a GOOD DEAL (well below market), FAIR, or OVERPRICED?`
-        : `Typical German resale: monitors €30-150, keyboards/mice €10-40, headsets €20-80. ` +
-          `At €${price}, GOOD DEAL / FAIR / OVERPRICED?`;
-      const prompt = `Format: "PHOTO | DEAL verdict | reason" — max 180 chars total.\n` +
-        `1) Real photo or stock? 2) ${isBike ? 'Bike type/brand?' : 'Product type?'} 3) ${priceContext}`;
+        ? `Typical German used bike prices: city/trekking €100-300, MTB €150-500, road €200-800, fixies €50-150.`
+        : `Typical German resale prices: monitors €30-150, keyboards/mice €10-40, headsets €20-80, tablets €50-200, PC components €20-100.`;
+      const prompt = `Format: "PHOTO | SCORE/10 | reason" — max 200 chars.\n` +
+        `Score 10 = impossibly cheap, 7-9 = great deal, 4-6 = fair, 1-3 = overpriced.\n` +
+        `1) Real photo or stock? 2) ${isBike ? 'Bike type/brand?' : 'Product type?'} 3) ${priceContext} At €${price}, what's the score?`;
 
       const python = spawn('python3', [ANALYZE_IMAGE_SCRIPT, deal.xxlImage, prompt], {
         stdio: ['ignore', 'pipe', 'pipe']
