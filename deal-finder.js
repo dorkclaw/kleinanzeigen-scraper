@@ -184,42 +184,21 @@ function formatPrice(ad) {
 // ─── DISCORD REPORTER ────────────────────────────────────────────────────────
 
 async function sendDiscord(deals) {
-  if (!DISCORD_WEBHOOK) {
-    console.log('No DISCORD_WEBHOOK set — skipping Discord notification');
-    return;
-  }
   if (deals.length === 0) {
-    console.log('No deals to report');
+    console.log('No deals found.');
     return;
   }
 
-  // Send in chunks of 10 (Discord embed limit per message)
-  const chunks = [];
-  for (let i = 0; i < deals.length; i += 10) {
-    chunks.push(deals.slice(i, i + 10));
-  }
-
-  for (const chunk of chunks) {
-    const embeds = chunk.map(deal => ({
-      title: deal.title,
-      url: deal.url,
-      description: `${deal.categoryLabel}\n**${formatPrice(deal.ad)}** | 📍 ${deal.ad.zipCode || deal.ad.state || '?'} (${deal.ad.distance}km)`,
-      thumbnail: deal.thumbnail ? { url: deal.thumbnail } : undefined,
-      color: 3066993, // green
-      footer: { text: deal.ad.id },
-    }));
-
-    await fetch(DISCORD_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `🛍️ **${deals.length} neue Deals in Aachen** (Suchlauf ${new Date().toISOString().split('T')[0]})`,
-        embeds,
-      }),
-    });
-
-    // Rate limit between chunks
-    if (chunks.length > 1) await sleep(2000);
+  console.log(`\n🛍️ **${deals.length} Deals found in Aachen** (${new Date().toISOString().split('T')[0]})\n`);
+  for (const deal of deals) {
+    const price = formatPrice(deal.ad);
+    const location = deal.ad.zipCode || deal.ad.state || '?';
+    const distance = deal.ad.distance || '?';
+    console.log(`  ${deal.categoryLabel}`);
+    console.log(`  ${deal.title}`);
+    console.log(`  **${price}** | 📍 ${location} (${distance}km)`);
+    console.log(`  ${deal.url}`);
+    console.log();
   }
 }
 
