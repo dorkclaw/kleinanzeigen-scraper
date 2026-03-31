@@ -44,7 +44,7 @@ const CORE_CATEGORIES = [
     { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'pc komponenten',    label: '🔧 PC-Komponenten',      maxPrice: 150, goodKeywords: ['gpu', 'grafikkarte', 'ram', 'ssd', 'nvme', 'cpu', 'prozessor'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'tasche', 'hülle', 'case', 'cover', 'folie', 'ständer', 'halterung'] },
     { query: 'headset',           label: '🎧 Headsets',            maxPrice: 60,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
   ],
 ];
