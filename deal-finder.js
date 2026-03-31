@@ -26,27 +26,25 @@ const POSTAL_CODE = '52074'; // Aachen zipcode
 const SEEN_FILE = path.join(__dirname, 'seen-ads.json');
 const ADS_DIR = path.join(__dirname, 'ads');
 
-// Categories to search. Each entry: { query, label, maxPrice, minPrice, goodBrands, excludeKeywords }
-// minPrice: skip if price is below this (junk signal)
-// goodBrands: required for quality filter; empty = any brand OK if price is low enough
+// Categories to search. Each entry: { query, label, maxPrice, excludeKeywords }
 // excludeKeywords: skip entirely regardless of brand/price
 const CORE_CATEGORIES = [
   // Group 0 (run on even days: 2,4,6,...30) — study/desk
   [
-    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 70,  minPrice: 30,  goodBrands: ['dell', 'lenovo', 'hp', 'asus', 'acer', 'apple', 'macbook', 'thinkpad', 'surface'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-', 'defect', 'damage', 'funktioniert nicht', 'startet nicht', 'bootet nicht', 'fehler', 'fehlerhaft', 'Reparatur', 'restwert', 'für teile', 'für ersatzteile', 'als ersatz', 'Displayfehler', 'Tastatur defekt', 'display kaputt', 'akku defekt', 'ladebuchse'] },
-    { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  minPrice: 5,   goodBrands: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'beschädigt'] },
-    { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, minPrice: 10, goodBrands: ['ti ', 'nspire', 'hp prime', 'casio', 'graphikrechner', 'sharp', 'sharp el'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 100, minPrice: 20, goodBrands: ['herman miller', 'steelcase', 'aeron', 'humanscale', 'bürostuhl', 'drehstuhl', 'gaming-stuhl', ' ergonomic'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'fehlerhaft'] },
-    { query: 'werkzeug',          label: '🔧 Werkzeug',            maxPrice: 80,  minPrice: 10, goodBrands: ['bosch', 'makita', 'dewalt', 'milwaukee', 'festool', 'metabo', 'stanley', 'wera'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad'] },
-    { query: 'hantel',            label: '🏋️ Hanteln (1-10kg)',    maxPrice: 30,  minPrice: 5,  goodBrands: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'ergometer', 'fahrrad', 'laufband'] },
+    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 70,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-', 'defect', 'damage', 'funktioniert nicht', 'startet nicht', 'bootet nicht', 'fehler', 'fehlerhaft', 'Reparatur', 'restwert', 'für teile', 'für ersatzteile', 'als ersatz', 'Displayfehler', 'Tastatur defekt', 'display kaputt', 'akku defekt', 'ladebuchse'] },
+    { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'beschädigt'] },
+    { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
+    { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 100, excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'fehlerhaft'] },
+    { query: 'werkzeug',          label: '🔧 Werkzeug',            maxPrice: 80,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad'] },
+    { query: 'hantel',            label: '🏋️ Hanteln (1-10kg)',    maxPrice: 30,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'ergometer', 'fahrrad', 'laufband'] },
   ],
   // Group 1 (run on odd days: 1,3,5,...31) — tech/gear
   [
-    { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, minPrice: 20, goodBrands: ['dell', 'lg', 'samsung', 'philips', 'benq', 'asus', 'hp', 'aoc', 'viewsonic', 'nec'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'burnin', 'einbrennen', 'fleck', 'flecken', 'totale defekt', 'netbook', 'Displayfehler', 'burn in', 'burn-in', 'brennt ein', 'eingebrannt'] },
-    { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  minPrice: 10, goodBrands: ['logitech', 'dell', 'microsoft', 'apple', 'keychron', 'filco', 'leopold', '樱桃', 'cherry'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'rauch', 'geraucht', 'tier', 'ps/2 adapter', 'ps/2 konverter', 'adapter', 'konverter'] },
-    { query: 'pc komponenten',    label: '🔧 PC-Komponenten',      maxPrice: 150, minPrice: 20, goodBrands: ['nvidia', 'amd', 'intel', 'samsung', 'crucial', 'western digital', 'wd', 'seagate', 'kingston', 'corsair', 'be quiet', 'noctua', 'arctic'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'defekt', 'fehlerhaft', 'restwert', 'für teile', 'für ersatzteile'] },
-    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, minPrice: 50, goodBrands: ['ipad', 'apple', 'samsung galaxy', 'galaxy tab', 'lenovo tab', 'microsoft surface', 'huawei matepad'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'tasche', 'hülle', 'case', 'cover', 'folie', 'ständer', 'halterung', 'pencil', 'pen', 'stift', 'keyboard cover', 'schutzhülle'] },
-    { query: 'headset',           label: '🎧 Headsets',            maxPrice: 80,  minPrice: 10, goodBrands: ['sennheiser', 'bose', 'jabra', 'audio-technica', 'beyerdynamic', 'shure', 'steelSeries', 'steelseries', 'razer', 'logitech', 'apple airpods', ' Sony', 'jbl'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'motorrad', 'moped', 'fahrrad', 'bike', 'velo', 'helm', 'intercom', 'sprachanlage', 'vimoto', 'fahrradcomputer', 'cycle', 'wired Only', 'nur kabel', 'ps4', 'xbox', 'kind', 'kinder', ' gaming ', 'gamingkopfhörer'] },
+    { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'burnin', 'einbrennen', 'fleck', 'flecken', 'totale defekt', 'netbook', 'Displayfehler', 'burn in', 'burn-in', 'brennt ein', 'eingebrannt'] },
+    { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'rauch', 'geraucht', 'tier', 'ps/2 adapter', 'ps/2 konverter', 'adapter', 'konverter'] },
+    { query: 'pc komponenten',    label: '🔧 PC-Komponenten',      maxPrice: 150, excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'defekt', 'fehlerhaft', 'restwert', 'für teile', 'für ersatzteile'] },
+    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'tasche', 'hülle', 'case', 'cover', 'folie', 'ständer', 'halterung', 'pencil', 'pen', 'stift', 'keyboard cover', 'schutzhülle'] },
+    { query: 'headset',           label: '🎧 Headsets',            maxPrice: 80,  excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'motorrad', 'moped', 'fahrrad', 'bike', 'velo', 'helm', 'intercom', 'sprachanlage', 'vimoto', 'fahrradcomputer', 'cycle', 'wired only', 'nur kabel', 'ps4', 'xbox', 'kind', 'kinder', ' gaming ', 'gamingkopfhörer'] },
   ],
 ];
 
@@ -165,23 +163,14 @@ function extractText(ad) {
   return parts.join(' ').toLowerCase();
 }
 
-function isLikelyDeal(ad, cat, price) {
+function isLikelyDeal(ad, cat) {
   const text = extractText(ad);
   
-  // Skip if price below minimum (too cheap = likely junk or wrong category)
-  if (cat.minPrice && price < cat.minPrice) return false;
-
   // Skip if contains any exclude keyword (defect, broken, wanted/Suche)
   // Normalize: strip HTML tags, replace separators with spaces, pad for boundary matching
   const normalized = ' ' + text.replace(/<[^>]+>/g, ' ').replace(/[-_:,;!?()[\]{}|]+/g, ' ') + ' ';
   for (const kw of cat.excludeKeywords) {
     if (normalized.includes(' ' + kw + ' ')) return false;
-  }
-
-  // If category has goodBrands, require at least one match (unless price is very low)
-  if (cat.goodBrands && cat.goodBrands.length > 0) {
-    const hasGoodBrand = cat.goodBrands.some(b => normalized.includes(' ' + b.toLowerCase() + ' '));
-    if (!hasGoodBrand) return false;
   }
 
   return true;
@@ -277,7 +266,7 @@ async function fetchCategory(cat, seenIds) {
       if (cat.maxPrice && price > cat.maxPrice) continue;
 
       // Check if likely a deal
-      if (!isLikelyDeal(ad, cat, price)) continue;
+      if (!isLikelyDeal(ad, cat)) continue;
 
       // Get thumbnail
       let thumbnail = null;
