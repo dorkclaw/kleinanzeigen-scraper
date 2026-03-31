@@ -62,11 +62,11 @@ const BONUS_CATEGORIES = [
     maxPrice: 250,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kabel', 'nur', 'led', 'party', 'mini', 'billig', 'computer', 'pc-lautsprecher', 'laptop'],
   },
-  // Bikes — only quality brands, AI filters the rest
+  // Bikes — max €80, AI checks description+picture before posting
   {
     query: 'fahrrad mountainbike rennrad',
     label: '🚲 Fahrräder',
-    maxPrice: 500,
+    maxPrice: 80,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kinder', '10 zoll', '12 zoll', '14 zoll', '16 zoll', '18 zoll', '20 zoll', '24 zoll', 'damenn', 'damenrad', 'herrenrad einfache', 'cityrad'],
   },
   // DDR4 RAM
