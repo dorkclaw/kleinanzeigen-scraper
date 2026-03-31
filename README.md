@@ -34,7 +34,7 @@ node scraper.js --query=fahrrad --locationId=1921 --maxPrice=100 --maxDistance=1
 ### Finding Location IDs
 
 Use the website URL: `https://www.kleinanzeigen.de/s-region-aachen/k0` → location code `an1921` → ID `1921`.
-Check the `api_scraper.js` for known IDs or inspect network requests on the site.
+Check `scraper.js` for known IDs or inspect network requests on the site.
 
 ### Examples
 
