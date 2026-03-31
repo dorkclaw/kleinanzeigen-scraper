@@ -1,0 +1,6 @@
+# Crawl data — specific to each run
+ads/
+state.json
+
+# Dependencies
+node_modules/
