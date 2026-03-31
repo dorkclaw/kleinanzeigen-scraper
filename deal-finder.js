@@ -194,10 +194,10 @@ async function reportDeals(deals) {
     const price = formatPrice(deal.ad);
     const location = deal.ad.zipCode || deal.ad.state || '?';
     const distance = deal.ad.distance || '?';
-    console.log(`  ${deal.categoryLabel}`);
+    console.log(`  **${deal.categoryLabel}**`);
     console.log(`  ${deal.title}`);
-    console.log(`  **${price}** | 📍 ${location} (${distance}km)`);
-    console.log(`  ${deal.url}`);
+    console.log(`  ${price} | 📍 ${location} (${distance}km)`);
+    console.log(`  🔗 [${deal.url}](${deal.url})`);
     console.log();
   }
 }
