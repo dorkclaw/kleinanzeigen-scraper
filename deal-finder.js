@@ -32,7 +32,7 @@ const ADS_DIR = path.join(__dirname, 'ads');
 const CORE_CATEGORIES = [
   // Group 0 (run on even days: 2,4,6,...30) — study/desk
   [
-    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 300, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-'] },
+    { query: 'laptop',            label: '💻 Laptops',             maxPrice: 300, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-', 'defect', 'damage', 'funktioniert', 'funktioniert nicht', 'startet nicht', 'bootet nicht', 'fehler', 'fehlerhaft', 'Reparatur', 'restwert', 'für teile', 'für ersatzteile', 'als ersatz', 'Displayfehler', 'Tastatur defekt'] },
     { query: 'bücher',            label: '📚 Bücher',              maxPrice: 50,  goodKeywords: ['informatik', 'mathematik', 'algorithm', 'programmierung', 'datenbank', 'netzwerk'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'taschenrechner',    label: '🔢 Taschenrechner',      maxPrice: 100, goodKeywords: ['ti ', 'nspire', 'hp prime', 'casio', 'graphikrechner'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'bürostuhl',         label: '🪑 Bürostühle',          maxPrice: 0,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
