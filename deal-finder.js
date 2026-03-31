@@ -44,7 +44,7 @@ const CORE_CATEGORIES = [
     { query: 'monitor',           label: '🖥️ Monitore',           maxPrice: 150, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'tastatur maus',     label: '⌨️🖱️ Tastaturen+Mäuse',  maxPrice: 80,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
     { query: 'pc komponenten',    label: '🔧 PC-Komponenten',      maxPrice: 150, goodKeywords: ['gpu', 'grafikkarte', 'ram', 'ssd', 'nvme', 'cpu', 'prozessor'], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
-    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'tasche', 'hülle', 'case', 'cover', 'folie', 'ständer', 'halterung'] },
+    { query: 'tablet ipad',       label: '📱 Tablets+iPads',       maxPrice: 200, goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'tasche', 'hülle', 'case', 'cover', 'folie', 'ständer', 'halterung', 'pencil', 'pen', 'stift'] },
     { query: 'headset',           label: '🎧 Headsets',            maxPrice: 60,  goodKeywords: [], excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'] },
   ],
 ];
@@ -139,14 +139,24 @@ function getThumbnail(ad) {
   }
 }
 
+// Unwrap a JAXB value: handles {value: "..."} or plain string/number
+function jv(v) {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (Array.isArray(v)) return v.map(jv).join(' ');
+  return (v.value !== undefined ? String(v.value) : '');
+}
+
 function extractText(ad) {
-  const parts = [ad.title || '', ad.description || ''];
+  const parts = [jv(ad.title), jv(ad.description)];
   try {
     if (ad.attributes) {
       const attrs = ad.attributes;
       if (Array.isArray(attrs)) {
         for (const a of attrs) {
-          if (a.value) parts.push(Array.isArray(a.value) ? a.value.join(' ') : String(a.value));
+          const val = jv(a.value !== undefined ? a.value : a);
+          if (val) parts.push(val);
         }
       }
     }
