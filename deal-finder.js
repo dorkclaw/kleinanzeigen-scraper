@@ -158,8 +158,10 @@ function isLikelyDeal(ad, cat) {
   const text = extractText(ad);
   
   // Skip if contains any exclude keyword (defect, broken, wanted/Suche)
+  // Normalize: strip HTML tags, replace separators with spaces, pad for boundary matching
+  const normalized = ' ' + text.replace(/<[^>]+>/g, ' ').replace(/[-_:,;!?()[\]{}|]+/g, ' ') + ' ';
   for (const kw of cat.excludeKeywords) {
-    if (text.includes(kw)) return false;
+    if (normalized.includes(' ' + kw + ' ')) return false;
   }
   
   // If category has goodKeywords (brand signals), require at least one match
