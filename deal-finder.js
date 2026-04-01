@@ -77,6 +77,13 @@ const BONUS_CATEGORIES = [
     maxPrice: 80,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'ddr3', 'ddr5', 'sodimm', 'laptop ram', 'server', 'ecc'],
   },
+  // Sony Xperia phones — only great deals
+  {
+    query: 'sony xperia',
+    label: '📱 Sony Xperia',
+    maxPrice: 300,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'gesperrt', 'lock', 'cracked', 'display kaputt', 'touch defekt', 'akku defekt'],
+  },
 ];
 
 // Always-on bonus categories (searched every run, not rotated)
@@ -172,7 +179,7 @@ const ALWAYS_BONUS = [
   },
 ];
 
-const BONUS = BONUS_CATEGORIES[day % 3];
+const BONUS = BONUS_CATEGORIES[day % 4];
 const ALL_CATEGORIES = [...CATEGORIES, BONUS, ...ALWAYS_BONUS];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
