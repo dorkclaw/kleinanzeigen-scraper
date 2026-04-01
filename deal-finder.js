@@ -523,7 +523,7 @@ async function main() {
     } else {
       console.log(' none');
     }
-    await sleep(5000); // 5s between categories to avoid rate limits
+    await sleep(2000); // 2s between categories to avoid rate limits
   }
 
   console.log();
@@ -543,9 +543,11 @@ async function main() {
 
   // Only post deals with vision score ≥8 (great deal or impossibly cheap)
   // Score 10 = impossibly cheap, 8-9 = great deal, 4-6 = fair, 1-3 = overpriced
-  // Without vision analysis, only post premium categories (VR/Racing) — high value items need verification
+  // Without vision analysis: mark deals as seen BUT always post (Dorian wants to see everything, will filter visually)
+  // With vision analysis: only post score ≥8 + real product photo
   const MIN_SCORE = 8;
   const filteredDeals = allDeals.filter(d => {
+    // With vision: strict quality filter
     if (doAnalyzeImages) {
       const vision = visionResults[d.id];
       if (!vision) return false;
@@ -554,9 +556,8 @@ async function main() {
       if (!match) return false;
       return parseInt(match[1]) >= MIN_SCORE;
     }
-    // No vision = only premium categories post (VR/Racing need photo verification)
-    const isPremium = d.categoryLabel.startsWith('🥽') || d.categoryLabel.startsWith('🏎️');
-    return isPremium;
+    // No vision: post everything (Dorian reviews manually, better than nothing)
+    return true;
   });
 
   // Print all deals (dry run shows everything, with scores)
