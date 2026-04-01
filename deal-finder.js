@@ -157,6 +157,19 @@ const ALWAYS_BONUS = [
     maxPrice: 200,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'leer', 'ohne hardware'],
   },
+  // Fahrradanhänger (one-wheel trailers like Burley, Croozer) — only excellent deals
+  {
+    query: 'fahrradanhänger',
+    label: '🚲 Fahrradanhänger',
+    maxPrice: 120,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'kinder', '2-rädrig', '2 rädrig', 'zweirädrig'],
+  },
+  {
+    query: 'fahrrad anhänger cargo',
+    label: '🚲 Fahrradanhänger',
+    maxPrice: 120,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'kinder', '2-rädrig', '2 rädrig', 'zweirädrig'],
+  },
 ];
 
 const BONUS = BONUS_CATEGORIES[day % 3];
