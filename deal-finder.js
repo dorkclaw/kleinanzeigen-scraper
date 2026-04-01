@@ -125,6 +125,38 @@ const ALWAYS_BONUS = [
     maxPrice: 250,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'cockpit', 'sitz', 'halterung'],
   },
+  // 10Gb/s+ network cards — only excellent deals
+  {
+    query: '10gbe network card',
+    label: '🔌 10GbE Netzwerkkarte',
+    maxPrice: 150,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'sfp+ modul', 'sfp+ cable'],
+  },
+  {
+    query: '10 gigabit pcie',
+    label: '🔌 10GbE Netzwerkkarte',
+    maxPrice: 150,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'sfp+ modul', 'sfp+ cable'],
+  },
+  {
+    query: 'sfp+ netzwerkkarte',
+    label: '🔌 SFP+ Netzwerkkarte',
+    maxPrice: 150,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'nur karte', 'ohne transceiver'],
+  },
+  // Server cases — only excellent deals
+  {
+    query: 'server gehäuse 19 zoll',
+    label: '🗄️ Server Gehäuse',
+    maxPrice: 200,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'leer', 'ohne hardware', 'netzteil'],
+  },
+  {
+    query: 'rackmount gehäuse',
+    label: '🗄️ Server Gehäuse',
+    maxPrice: 200,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'leer', 'ohne hardware'],
+  },
 ];
 
 const BONUS = BONUS_CATEGORIES[day % 3];
