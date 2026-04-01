@@ -1,7 +1,7 @@
 #!/bin/bash
 # Runs deal-finder and posts a summary to Discord #claw channel.
 # Set KLEINANZEIGEN_DISCORD_WEBHOOK to your Discord webhook URL.
-# Without the env var, runs silently (good for testing).
+# Without the env var, outputs summary to stdout (for cron announce).
 
 set -e
 
@@ -32,15 +32,28 @@ fi
 
 echo "[deal-finder] Found $TOTAL new deals."
 
+# Always print deals to stdout (for cron announcement)
+echo ""
+echo "=== DEALS ==="
+# Format: "  [CATEGORY] Title — Price | location"
+grep "^  \[" "$LOG" | while read -r line; do
+  echo "$line"
+done | head -10
+echo "============="
+
 # Post to Discord webhook if configured
 if [ -n "$WEBHOOK_URL" ]; then
-  # Build a compact deal list (first 10)
-  DEALS=$(grep "^  DEAL:" "$LOG" | sed 's/^  DEAL: //' | head -10 | while read -r line; do
+  # Build deal list with URLs (extract URLs separately)
+  DEALS=$(grep "^  \[" "$LOG" | head -10 | while read -r line; do
+    # Extract URL from next line after deal line
+    url_line=$(grep -A1 "$(echo "$line" | sed 's/\[/\\[/g;s/\]/\\]/g')" "$LOG" | grep "^    https://" | head -1)
     echo "$line"
+    if [ -n "$url_line" ]; then
+      echo "  $url_line"
+    fi
   done)
 
-  # Escape deals for JSON (basic: escape quotes and backslashes)
-  DEALS_ESCAPED=$(echo "$DEALS" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo "")
+  DEALS_ESCAPED=$(echo "$DEALS" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo "\"\"")
 
   PAYLOAD=$(cat << PYEOF
 {
