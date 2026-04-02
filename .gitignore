@@ -4,3 +4,9 @@ state.json
 
 # Dependencies
 node_modules/
+
+# Private preferences and debug scripts
+FEEDBACK.md
+*-test.js
+debug-*.js
+test*.js
