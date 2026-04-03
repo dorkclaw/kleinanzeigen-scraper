@@ -78,7 +78,9 @@ async function main() {
   if (allDeals.length === 0) {
     console.log('Nothing new. Exiting.');
     // Post "no deals" ping so cron visibility is confirmed in Discord
-    await reportDeals([]);
+    if (!dryRun) {
+      await reportDeals([]);
+    }
     return;
   }
 
