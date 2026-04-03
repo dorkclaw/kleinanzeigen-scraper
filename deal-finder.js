@@ -69,7 +69,7 @@ async function main() {
     } else {
       console.log(' none');
     }
-    await sleep(2000);
+    await sleep(1000);
   }
 
   console.log();
@@ -77,6 +77,8 @@ async function main() {
 
   if (allDeals.length === 0) {
     console.log('Nothing new. Exiting.');
+    // Post "no deals" ping so cron visibility is confirmed in Discord
+    await reportDeals([]);
     return;
   }
 
