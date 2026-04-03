@@ -8,6 +8,25 @@
  *   node deal-finder.js --categories     # list configured categories and exit
  *   node deal-finder.js --reset-seen     # clear seen-ads log (start fresh)
  */
+
+// ─── Load .env file (simple key=value parser, no external deps) ─────────────
+(function loadEnv() {
+  const fs = require('fs');
+  const path = require('path');
+  const envFile = path.join(__dirname, '.env');
+  if (!fs.existsSync(envFile)) return;
+  const lines = fs.readFileSync(envFile, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    if (key && !process.env[key]) process.env[key] = val;
+  }
+})();
+
 const { getCategories } = require('./src/categories');
 const { fetchCategory } = require('./src/fetch');
 const { runVisionAnalysis } = require('./src/vision');

@@ -11,3 +11,6 @@ FEEDBACK.md
 debug-*.js
 test*.js
 seen-ads.json
+
+# Environment variables (contains secrets)
+.env
