@@ -207,9 +207,19 @@ const BONUS_CATEGORIES = [
 
 /** Get the categories for today (based on day of month). */
 function getCategories() {
+  // Test mode: only first category for heartbeat verification
+  if (process.env.TEST === '1') {
+    const day = new Date().getDate();
+    const core = CORE_GROUPS[day % 2];
+    return [core[0]];
+  }
   const day = new Date().getDate();
   const core = CORE_GROUPS[day % 2];
   const bonus = BONUS_CATEGORIES[day % 4];
+  // Quick mode for heartbeat checks (skip ALWAYS_BONUS to speed up)
+  if (process.env.QUICK === '1') {
+    return [...core, bonus];
+  }
   return [...core, bonus, ...ALWAYS_BONUS];
 }
 

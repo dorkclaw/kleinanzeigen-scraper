@@ -65,6 +65,54 @@ function filterByVision(deals, visionResults, doAnalyzeImages, minScore = 8) {
 
 // ─── Discord posting ─────────────────────────────────────────────────────────
 
+const DISCORD_MAX_RETRIES = 3;
+const DISCORD_RETRY_BASE_DELAY_MS = 1000;
+
+/**
+ * Post a single payload to Discord with retry logic.
+ * @param {object} payload - Discord webhook payload
+ * @returns {Promise<boolean>} true if posted successfully after retries
+ */
+async function postWithRetry(payload) {
+  if (!DISCORD_WEBHOOK_URL) {
+    console.log('[Discord] No webhook URL configured (set KLEINANZEIGEN_DISCORD_WEBHOOK)');
+    return false;
+  }
+
+  for (let attempt = 1; attempt <= DISCORD_MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        return true;
+      }
+      if (res.status >= 500 && attempt < DISCORD_MAX_RETRIES) {
+        // Server error — retry
+        const delay = DISCORD_RETRY_BASE_DELAY_MS * attempt;
+        console.warn(`[Discord] Server error ${res.status}, retrying in ${delay}ms (attempt ${attempt}/${DISCORD_MAX_RETRIES})…`);
+        await sleep(delay);
+        continue;
+      }
+      // 400 bad request, 404 not found, 403 forbidden, etc. — don't retry, it's a permanent failure
+      console.warn(`[Discord] Webhook returned ${res.status} ${res.statusText} — not retrying.`);
+      return false;
+    } catch (err) {
+      if (attempt < DISCORD_MAX_RETRIES) {
+        const delay = DISCORD_RETRY_BASE_DELAY_MS * attempt;
+        console.warn(`[Discord] Network error: ${err.message}, retrying in ${delay}ms (attempt ${attempt}/${DISCORD_MAX_RETRIES})…`);
+        await sleep(delay);
+        continue;
+      }
+      console.error(`[Discord] Failed after ${DISCORD_MAX_RETRIES} attempts:`, err.message);
+      return false;
+    }
+  }
+  return false;
+}
+
 /**
  * Post deals to Discord via webhook.
  * @param {object[]} deals
@@ -83,23 +131,9 @@ async function postToDiscord(deals) {
     const payload = {
       content: `🛍️ **0 neue Deals in Aachen** (${dateStr})\n\nKeine neuen Deals heute. Nächste Prüfung morgen früh. 💨`,
     };
-    try {
-      const res = await fetch(DISCORD_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        console.log('[Discord] Posted "no deals" notification.');
-        return true;
-      } else {
-        console.warn(`[Discord] Webhook returned ${res.status} ${res.statusText}`);
-        return false;
-      }
-    } catch (err) {
-      console.error('[Discord] Failed to post:', err.message);
-      return false;
-    }
+    const ok = await postWithRetry(payload);
+    if (ok) console.log('[Discord] Posted "no deals" notification.');
+    return ok;
   }
 
   // Build a compact list — each deal on 2 lines
@@ -115,8 +149,10 @@ async function postToDiscord(deals) {
   // Discord embed field limit is 1024 chars per field, 25 fields max
   // Post as plain text (compact) — split into chunks of 10 deals max
   const CHUNK = 10;
+  let allOk = true;
   for (let i = 0; i < deals.length; i += CHUNK) {
     const chunk = deals.slice(i, i + CHUNK);
+    const chunkNum = Math.floor(i / CHUNK) + 1;
     const chunkLines = [i === 0 ? lines[0] : `🛍️ **Deals ${i + 1}–${i + chunk.length}** (fortgesetzt)`];
     for (const deal of chunk) {
       const price = formatPrice(deal.ad);
@@ -127,24 +163,17 @@ async function postToDiscord(deals) {
       chunkLines.push(`${deal.url}\n`);
     }
     const payload = { content: chunkLines.join('\n') };
-    try {
-      const res = await fetch(DISCORD_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        console.warn(`[Discord] Chunk ${i / CHUNK + 1} → webhook returned ${res.status}`);
-      } else {
-        console.log(`[Discord] Posted chunk ${i / CHUNK + 1} (${chunk.length} deals).`);
-      }
-    } catch (err) {
-      console.error(`[Discord] Chunk ${i / CHUNK + 1} failed:`, err.message);
+    const ok = await postWithRetry(payload);
+    if (ok) {
+      console.log(`[Discord] Posted chunk ${chunkNum} (${chunk.length} deals).`);
+    } else {
+      console.warn(`[Discord] Chunk ${chunkNum} failed — not retrying further.`);
+      allOk = false;
     }
     // Small delay between chunks to avoid rate limiting
     if (i + CHUNK < deals.length) await sleep(500);
   }
-  return true;
+  return allOk;
 }
 
 function sleep(ms) {
@@ -155,12 +184,14 @@ function sleep(ms) {
 
 /**
  * Print a list of deals to stdout.
+ * @param {object[]} deals
+ * @returns {Promise<boolean>} true if Discord delivery succeeded
  */
 async function reportDeals(deals) {
   if (deals.length === 0) {
     console.log('No deals found.');
-    await postToDiscord(deals); // still ping Discord so cron is alive
-    return;
+    const ok = await postToDiscord(deals); // still ping Discord so cron is alive
+    return ok;
   }
 
   console.log(`\n🛍️ **${deals.length} Deals found in Aachen** (${new Date().toISOString().split('T')[0]})\n`);
@@ -175,7 +206,8 @@ async function reportDeals(deals) {
     console.log();
   }
 
-  await postToDiscord(deals);
+  const ok = await postToDiscord(deals);
+  return ok;
 }
 
 /**

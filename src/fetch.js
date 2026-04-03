@@ -59,7 +59,8 @@ async function fetchCategory(cat, seenIds) {
       seenThisRun.add(id);
 
       // Skip non-fixed-price ads
-      const priceType = rawAd.price?.['price-type']?.value || rawAd.price?.['price-type'];
+      const priceTypeRaw = rawAd.price?.['price-type']?.value || rawAd.price?.['price-type'];
+      const priceType = typeof priceTypeRaw === 'object' ? priceTypeRaw?.value : priceTypeRaw;
       if (priceType !== 'SPECIFIED_AMOUNT') continue;
 
       // Extract and validate price
@@ -103,7 +104,7 @@ async function fetchCategory(cat, seenIds) {
     }
 
     if (ads.length < PAGE_SIZE) break;
-    await sleep(2000);
+    await sleep(1000);
   }
 
   return { deals, seenThisRun };

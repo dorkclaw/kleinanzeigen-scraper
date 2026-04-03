@@ -119,12 +119,16 @@ async function main() {
     return;
   }
 
-  // ─── Persist seen ads ─────────────────────────────────────────────────────
-  markSeen(allSeenThisRun);
-
   // ─── Filter & report ───────────────────────────────────────────────────────
   const filteredDeals = filterByVision(allDeals, visionResults, doAnalyzeImages, /* minScore */ 8);
-  await reportDeals(filteredDeals);
+  const posted = await reportDeals(filteredDeals);
+
+  // ─── Persist seen ads only after Discord webhook succeeded ─────────────────
+  if (posted) {
+    markSeen(allSeenThisRun);
+  } else {
+    console.warn('[Seen] Discord delivery failed — NOT marking ads as seen; they will be retried next run.');
+  }
 }
 
 main().catch(console.error);

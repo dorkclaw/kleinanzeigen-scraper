@@ -25,7 +25,8 @@ function apiGet(path, retries = 3) {
     };
 
     const doReq = () => {
-      https.get(options, res => {
+      const TIMEOUT_MS = 30000;
+      const req = https.get(options, res => {
         if (res.statusCode === 429 && retries > 0) {
           console.error(`  ⚠ Rate-limited (429), retrying in 10s... (${retries} left)`);
           setTimeout(doReq, 10000);
@@ -44,7 +45,11 @@ function apiGet(path, retries = 3) {
             reject(new Error(`JSON parse failed: ${data.slice(0, 200)}`));
           }
         });
-      }).on('error', reject);
+      });
+      req.setTimeout(TIMEOUT_MS, () => {
+        req.destroy(new Error(`Request timeout after ${TIMEOUT_MS}ms`));
+      });
+      req.on('error', reject);
     };
 
     doReq();
@@ -62,14 +67,17 @@ function sleep(ms) {
  * Also handles plain primitives, arrays, and nested JAXB ({value: {value: "..."}}).
  */
 function jv(v) {
-  if (!v) return '';
+  if (v === undefined || v === null) return '';
   if (typeof v === 'string') return v;
   if (typeof v === 'number') return String(v);
   if (Array.isArray(v)) return v.map(jv).join(' ');
   // Recursively unwrap nested JAXB objects
-  while (v && typeof v === 'object' && 'value' in v) {
+  while (typeof v === 'object' && v !== null && 'value' in v) {
     v = v.value;
   }
+  // After unwinding, if we landed on a non-primitive, give up rather than
+  // stringify something like {} or [] as '[object Object]'
+  if (typeof v === 'object' && v !== null) return '';
   return String(v ?? '');
 }
 
