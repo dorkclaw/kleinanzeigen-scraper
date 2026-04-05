@@ -106,31 +106,14 @@ const CORE_GROUPS = [
       query: 'laptop',
       label: '💻 Laptops',
       maxPrice: 70,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-', 'defect', 'damage', 'funktioniert nicht', 'startet nicht', 'bootet nicht', 'fehler', 'fehlerhaft', 'Reparatur', 'restwert', 'für teile', 'für ersatzteile', 'als ersatz', 'Displayfehler', 'Tastatur defekt', 'display kaputt', 'akku defekt', 'ladebuchse'],
+      excludeKeywords: ['defekt', 'kaputt', 'broken', 'gesperrt', 'suche', 'nur ', 'nur-', 'defect', 'damage', 'funktioniert nicht', 'startet nicht', 'bootet nicht', 'fehler', 'fehlerhaft', 'Reparatur', 'restwert', 'für teile', 'für ersatzteile', 'als ersatz', 'Displayfehler', 'Tastatur defekt', 'display kaputt', 'akku defekt', 'ladebuchse', 'ohne RAM', 'ohne ram', 'ohne Ram'],
     },
-    {
-      query: 'bücher',
-      label: '📚 Bücher',
-      maxPrice: 50,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'beschädigt'],
-    },
-    {
-      query: 'taschenrechner',
-      label: '🔢 Taschenrechner',
-      maxPrice: 100,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche'],
-    },
-    {
-      query: 'bürostuhl',
-      label: '🪑 Bürostühle',
-      maxPrice: 100,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'fehlerhaft'],
-    },
+    // Bürostuhl, Taschenrechner, Bücher removed per dork (2026-04-04)
     {
       query: 'werkzeug',
       label: '🔧 Werkzeug',
       maxPrice: 80,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad'],
+      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad', 'playmobil'],
     },
     {
       query: 'hantel',
