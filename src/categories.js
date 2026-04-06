@@ -113,7 +113,7 @@ const CORE_GROUPS = [
       query: 'werkzeug',
       label: '🔧 Werkzeug',
       maxPrice: 80,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad', 'playmobil'],
+      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad', 'playmobil', 'theo klein'],
     },
     {
       query: 'hantel',
@@ -163,7 +163,7 @@ const BONUS_CATEGORIES = [
     query: 'lautsprecher subwoofer',
     label: '🔊 Lautsprecher+Subwoofer',
     maxPrice: 250,
-    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kabel', 'nur', 'led', 'party', 'mini', 'billig', 'computer', 'pc-lautsprecher', 'laptop'],
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'kabel', 'nur', 'led', 'party', 'mini', 'billig', 'computer', 'pc-lautsprecher', 'laptop', 'theo klein'],
   },
   // Day % 4 == 1: Bikes — max €80, AI checks description+picture before posting
   {
