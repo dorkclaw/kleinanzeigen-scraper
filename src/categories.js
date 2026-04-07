@@ -188,6 +188,34 @@ const BONUS_CATEGORIES = [
   },
 ];
 
+// Schraubergaragen in Arnsberg (+15km) — always searched, separate from day rotation
+const SCHRAUBERGARAGEN = [
+  {
+    query: 'Schraubergarage',
+    label: '🚗 Schraubergarage (Arnsberg+15km)',
+    maxPrice: 200,
+    radius: 15,
+    locationId: 29317, // Arnsberg area (Voßwinkel)
+    excludeKeywords: ['Keine Schrauber', 'keine schrauber', 'Keine Schraubergarage', 'keine schraubergarage', 'kein schrauber', 'Kein Schrauber'],
+  },
+  {
+    query: 'Garage Hebebühne',
+    label: '🚗 Garage+Hebebühne (Arnsberg+15km)',
+    maxPrice: 200,
+    radius: 15,
+    locationId: 29317,
+    excludeKeywords: ['Keine Schrauber', 'keine schrauber', 'Keine Schraubergarage', 'keine schraubergarage'],
+  },
+  {
+    query: 'Werkstatt garage',
+    label: '🚗 WerkstattGarage (Arnsberg+15km)',
+    maxPrice: 200,
+    radius: 15,
+    locationId: 29317,
+    excludeKeywords: ['Keine Schrauber', 'keine schrauber', 'Keine Schraubergarage', 'keine schraubergarage'],
+  },
+];
+
 /** Get the categories for today (based on day of month). */
 function getCategories() {
   // Test mode: only first category for heartbeat verification
@@ -201,9 +229,9 @@ function getCategories() {
   const bonus = BONUS_CATEGORIES[day % 4];
   // Quick mode for heartbeat checks (skip ALWAYS_BONUS to speed up)
   if (process.env.QUICK === '1') {
-    return [...core, bonus];
+    return [...core, bonus, ...SCHRAUBERGARAGEN];
   }
-  return [...core, bonus, ...ALWAYS_BONUS];
+  return [...core, bonus, ...SCHRAUBERGARAGEN, ...ALWAYS_BONUS];
 }
 
-module.exports = { CORE_GROUPS, BONUS_CATEGORIES, ALWAYS_BONUS, getCategories };
+module.exports = { CORE_GROUPS, BONUS_CATEGORIES, ALWAYS_BONUS, SCHRAUBERGARAGEN, getCategories };

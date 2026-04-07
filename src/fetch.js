@@ -21,7 +21,7 @@ async function fetchCategory(cat, seenIds) {
   for (let page = 0; page < MAX_PAGES; page++) {
     const params = new URLSearchParams({
       q: cat.query,
-      locationId: String(LOCATION_ID),
+      locationId: String(cat.locationId || LOCATION_ID),
       size: String(PAGE_SIZE),
       page: String(page),
     });
@@ -67,6 +67,13 @@ async function fetchCategory(cat, seenIds) {
       const priceAmount = rawAd.price?.amount;
       const priceNum = extractNum(priceAmount);
       if (priceNum === null || (cat.maxPrice && priceNum > cat.maxPrice)) continue;
+
+      // Radius filter (km)
+      if (cat.radius) {
+        const rawRadius = jv(rawAd['ad-address']?.radius);
+        const dist = parseFloat(rawRadius || 0);
+        if (dist > cat.radius) continue;
+      }
 
       // Keyword quality filter
       if (!isLikelyDeal(rawAd, cat)) continue;
