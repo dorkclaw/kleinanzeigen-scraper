@@ -1,7 +1,7 @@
 /**
  * Core category fetching logic — searches one category for new ads.
  */
-const { apiGet, sleep, jv, extractPictures, extractUrl } = require('./api');
+const { apiGet, apiGetAd, jv, getSellerSatisfaction, sleep, extractPictures, extractUrl } = require('./api');
 const { LOCATION_ID } = require('./constants');
 
 const PAGE_SIZE = 20;
@@ -78,6 +78,22 @@ async function fetchCategory(cat, seenIds) {
       // Keyword quality filter
       if (!isLikelyDeal(rawAd, cat)) continue;
 
+      // Fetch individual ad for seller satisfaction (skip OK/NAJA sellers)
+      try {
+        const adData = await apiGetAd(id);
+        const nsKey = NS + 'ad';
+        const adValue = adData?.[nsKey]?.value;
+        const satisfaction = getSellerSatisfaction(adValue);
+        // Skip only known OK/NAJA sellers; UNKNOWN (null = no rating data) passes through
+        if (satisfaction === 'OK' || satisfaction === 'NAJA') {
+          console.log(`  Skipping "${jv(rawAd.title) || id}" — seller satisfaction: ${satisfaction}`);
+          continue;
+        }
+      } catch (e) {
+        // If we can't fetch seller info, be permissive and include the deal
+        console.warn(`  Could not fetch seller info for ${id}: ${e.message}`);
+      }
+
       // Extract images
       const pics = extractPictures(rawAd.pictures);
       const thumbnail = pics?.thumbnail || null;
@@ -136,13 +152,36 @@ function extractNum(v) {
   return isNaN(n) ? null : n;
 }
 
-/** Check if ad text doesn't contain any exclude keywords. */
+/** Check if ad text doesn't contain any exclude keywords and matches required keywords. */
 function isLikelyDeal(ad, cat) {
   const text = extractText(ad);
   const normalized = ' ' + text.replace(/<[^>]+>/g, ' ').replace(/[-_:,;!?()[\]{}|]+/g, ' ') + ' ';
+
   for (const kw of cat.excludeKeywords) {
     if (normalized.includes(' ' + kw + ' ')) return false;
   }
+
+  if (cat.requireKeywords && cat.requireKeywords.length > 0) {
+    const hasRequired = cat.requireKeywords.some(kw => {
+      const needle = ' ' + kw.toLowerCase() + ' ';
+      return normalized.includes(needle);
+    });
+    if (!hasRequired) return false;
+  }
+
+  // Height filter: reject if any height value found is below minimum
+  if (cat.minHeight) {
+    const heights = text.match(/\b(\d+)\s*(cm|m)\b/gi) || [];
+    const hasValidHeight = heights.some(h => {
+      const n = parseInt(h, 10);
+      const isMeters = h.toLowerCase().includes('m');
+      const cm = isMeters ? n * 100 : n;
+      return cm >= cat.minHeight;
+    });
+    // If no height mentioned at all, be lenient and accept
+    if (heights.length > 0 && !hasValidHeight) return false;
+  }
+
   return true;
 }
 

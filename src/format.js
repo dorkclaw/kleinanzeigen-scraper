@@ -1,5 +1,5 @@
 /**
- * Formatting and reporting helpers.
+ * Formatting, vision filtering, and Discord reporting helpers.
  */
 const { jv } = require('./api');
 
@@ -8,30 +8,22 @@ const DISCORD_WEBHOOK_URL =
   process.env.DISCORD_WEBHOOK_URL ||
   null;
 
-// ─── Price formatting ─────────────────────────────────────────────────────────
+// ─── Price formatting ────────────────────────────────────────────────────────
 
-/**
- * Format a deal's price and currency.
- * @param {object} deal - Deal object with .price (number) and .currency (string) top-level,
- *                        OR ad object with JAXB-wrapped .price
- */
+/** @param {object} deal - top-level deal with .price (number) and .currency */
 function formatPrice(deal) {
-  let p, cur;
-  if (typeof deal.price === 'number') {
-    p = deal.price;
-    cur = deal.currency || '€';
-  } else {
-    p = deal.price?.amount?.value || deal.price?.amount;
-    cur = deal.price?.['currency-iso-code']?.value?.value || deal.currency || '€';
-  }
-  if (!p || p === 0) return 'Preis auf Anfrage';
-  return `${p} ${cur}`;
+  if (!deal.price || deal.price === 0) return 'Preis auf Anfrage';
+  const cur = deal.currency === 'EUR' ? '€' : (deal.currency || '€');
+  return `${deal.price} ${cur}`;
 }
 
-// ─── HTML stripping ──────────────────────────────────────────────────────────
+// ─── HTML stripping ─────────────────────────────────────────────────────────
 
 /**
  * Strip HTML tags from a string and truncate.
+ * @param {string} str
+ * @param {number} maxLen
+ * @returns {string}
  */
 function stripHtml(str, maxLen = 200) {
   const plain = (str || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -41,23 +33,23 @@ function stripHtml(str, maxLen = 200) {
 // ─── Vision filtering ────────────────────────────────────────────────────────
 
 /**
- * Filter deals by vision score (if vision results available).
- * Without vision: returns all deals.
+ * Filter deals by vision score.
+ * Requires vision string to match "PHOTO | N/10" format and score >= minScore.
+ * Returns original array unchanged if vision analysis was not run.
  *
  * @param {object[]} deals
- * @param {object} visionResults - map of dealId → vision string
- * @param {boolean} doAnalyzeImages - whether vision analysis was run
- * @param {number} minScore - minimum score to pass (default 8)
+ * @param {object}   visionResults - map of dealId → vision result string
+ * @param {boolean}  wasAnalyzed  - whether vision analysis actually ran
+ * @param {number}   minScore     - minimum score to pass (default 8)
  * @returns {object[]} filtered deals
  */
-function filterByVision(deals, visionResults, doAnalyzeImages, minScore = 8) {
-  if (!doAnalyzeImages) return deals;
+function filterByVision(deals, visionResults, wasAnalyzed, minScore = 8) {
+  if (!wasAnalyzed) return deals;
 
   return deals.filter(d => {
     const vision = visionResults[d.id];
     if (!vision) return false;
-    if (!vision.match(/^PHOTO\s*\|/i)) return false;
-    const match = vision.match(/(\d+)\/10/);
+    const match = vision.match(/^PHOTO\s*\|\s*(\d+)\/10/i);
     if (!match) return false;
     return parseInt(match[1]) >= minScore;
   });
@@ -65,8 +57,12 @@ function filterByVision(deals, visionResults, doAnalyzeImages, minScore = 8) {
 
 // ─── Discord posting ─────────────────────────────────────────────────────────
 
-const DISCORD_MAX_RETRIES = 3;
-const DISCORD_RETRY_BASE_DELAY_MS = 1000;
+const DISCORD_MAX_RETRIES  = 3;
+const DISCORD_RETRY_DELAY  = 1000; // ms
+const DISCORD_CHUNK_SIZE   = 10;   // deals per Discord message
+
+/** Small delay helper that works in both CommonJS and ESM contexts. */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /**
  * Post a single payload to Discord with retry logic.
@@ -86,23 +82,23 @@ async function postWithRetry(payload) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        return true;
-      }
+      if (res.ok) return true;
+
+      // 5xx: retryable server error
       if (res.status >= 500 && attempt < DISCORD_MAX_RETRIES) {
-        // Server error — retry
-        const delay = DISCORD_RETRY_BASE_DELAY_MS * attempt;
-        console.warn(`[Discord] Server error ${res.status}, retrying in ${delay}ms (attempt ${attempt}/${DISCORD_MAX_RETRIES})…`);
+        const delay = DISCORD_RETRY_DELAY * attempt;
+        console.warn(`[Discord] Server error ${res.status}, retrying in ${delay}ms (${attempt}/${DISCORD_MAX_RETRIES})…`);
         await sleep(delay);
         continue;
       }
-      // 400 bad request, 404 not found, 403 forbidden, etc. — don't retry, it's a permanent failure
+
+      // 4xx: permanent failure, don't retry
       console.warn(`[Discord] Webhook returned ${res.status} ${res.statusText} — not retrying.`);
       return false;
     } catch (err) {
       if (attempt < DISCORD_MAX_RETRIES) {
-        const delay = DISCORD_RETRY_BASE_DELAY_MS * attempt;
-        console.warn(`[Discord] Network error: ${err.message}, retrying in ${delay}ms (attempt ${attempt}/${DISCORD_MAX_RETRIES})…`);
+        const delay = DISCORD_RETRY_DELAY * attempt;
+        console.warn(`[Discord] Network error: ${err.message}, retrying in ${delay}ms (${attempt}/${DISCORD_MAX_RETRIES})…`);
         await sleep(delay);
         continue;
       }
@@ -124,106 +120,90 @@ async function postToDiscord(deals) {
     return false;
   }
 
-  const dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const dateStr = new Date().toLocaleDateString('de-DE', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
 
   if (deals.length === 0) {
-    // Post a "no deals" ping so we know the cron is alive
-    const payload = {
-      content: `🛍️ **0 neue Deals in Aachen** (${dateStr})\n\nKeine neuen Deals heute. Nächste Prüfung morgen früh. 💨`,
-    };
-    const ok = await postWithRetry(payload);
-    if (ok) console.log('[Discord] Posted "no deals" notification.');
-    return ok;
+    console.log('[Discord] No deals — not posting.');
+    return true;
   }
 
-  // Build a compact list — each deal on 2 lines
-  const lines = [`🛍️ **${deals.length} neue Deals in Aachen** (${dateStr})\n`];
-  for (const deal of deals) {
-    const price = formatPrice(deal.ad);
-    const location = deal.ad.state || deal.ad.zipCode || '?';
-    const distance = deal.ad.distance || '?';
-    lines.push(`**${deal.categoryLabel}** — ${deal.title}`);
-    lines.push(`${price} | 📍 ${location} (${distance}km) | ${deal.url}\n`);
-  }
-
-  // Discord embed field limit is 1024 chars per field, 25 fields max
-  // Post as plain text (compact) — split into chunks of 10 deals max
-  const CHUNK = 10;
   let allOk = true;
-  for (let i = 0; i < deals.length; i += CHUNK) {
-    const chunk = deals.slice(i, i + CHUNK);
-    const chunkNum = Math.floor(i / CHUNK) + 1;
-    const chunkLines = [i === 0 ? lines[0] : `🛍️ **Deals ${i + 1}–${i + chunk.length}** (fortgesetzt)`];
-    for (const deal of chunk) {
-      const price = formatPrice(deal.ad);
-      const location = deal.ad.state || deal.ad.zipCode || '?';
-      const distance = deal.ad.distance || '?';
-      chunkLines.push(`**${deal.categoryLabel}** — ${deal.title}`);
-      chunkLines.push(`${price} | 📍 ${location} (${distance}km)`);
-      chunkLines.push(`${deal.url}\n`);
+  for (let i = 0; i < deals.length; i += DISCORD_CHUNK_SIZE) {
+    const chunk     = deals.slice(i, i + DISCORD_CHUNK_SIZE);
+    const chunkNum = Math.floor(i / DISCORD_CHUNK_SIZE) + 1;
+    const isFirst  = i === 0;
+
+    const header = isFirst
+      ? `🛍️ **${deals.length} neue Deals in Aachen** (${dateStr})\n`
+      : `🛍️ **Deals ${i + 1}–${i + chunk.length}** (fortgesetzt)\n`;
+
+    const lines = [header];
+    for (const d of chunk) {
+      lines.push(
+        `**${d.categoryLabel}** — ${d.title}`,
+        `${formatPrice({ price: d.price, currency: d.currency })} | 📍 ${d.ad.state || '?'} (${d.ad.distance}km)`,
+        `${d.url}\n`,
+      );
     }
-    const payload = { content: chunkLines.join('\n') };
-    const ok = await postWithRetry(payload);
+
+    const ok = await postWithRetry({ content: lines.join('\n') });
     if (ok) {
-      console.log(`[Discord] Posted chunk ${chunkNum} (${chunk.length} deals).`);
+      console.log(`[Discord] Chunk ${chunkNum} posted (${chunk.length} deals).`);
     } else {
-      console.warn(`[Discord] Chunk ${chunkNum} failed — not retrying further.`);
+      console.warn(`[Discord] Chunk ${chunkNum} failed.`);
       allOk = false;
     }
-    // Small delay between chunks to avoid rate limiting
-    if (i + CHUNK < deals.length) await sleep(500);
-  }
-  return allOk;
-}
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+    if (i + DISCORD_CHUNK_SIZE < deals.length) await sleep(500);
+  }
+
+  return allOk;
 }
 
 // ─── Stdout reporting ────────────────────────────────────────────────────────
 
 /**
- * Print a list of deals to stdout.
+ * Report new deals to stdout and Discord.
  * @param {object[]} deals
  * @returns {Promise<boolean>} true if Discord delivery succeeded
  */
 async function reportDeals(deals) {
   if (deals.length === 0) {
     console.log('No deals found.');
-    const ok = await postToDiscord(deals); // still ping Discord so cron is alive
-    return ok;
+    return postToDiscord([]);
   }
 
   console.log(`\n🛍️ **${deals.length} Deals found in Aachen** (${new Date().toISOString().split('T')[0]})\n`);
-  for (const deal of deals) {
-    const price = formatPrice(deal.ad);
-    const location = deal.ad.zipCode || deal.ad.state || '?';
-    const distance = deal.ad.distance || '?';
-    console.log(`  **${deal.categoryLabel}**`);
-    console.log(`  ${deal.title}`);
-    console.log(`  ${price} | 📍 ${location} (${distance}km)`);
-    console.log(`  🔗 [${deal.url}](${deal.url})`);
+  for (const d of deals) {
+    console.log(`  **${d.categoryLabel}**`);
+    console.log(`  ${d.title}`);
+    console.log(`  ${formatPrice({ price: d.price, currency: d.currency })} | 📍 ${d.ad.state || '?'} (${d.ad.distance}km)`);
+    console.log(`  🔗 [${d.url}](${d.url})`);
     console.log();
   }
 
-  const ok = await postToDiscord(deals);
-  return ok;
+  return postToDiscord(deals);
 }
 
 /**
- * Print all deals to stdout (for dry-run / full listing output).
- * Includes description snippet and vision result if available.
+ * Print all deals to stdout (dry-run output).
+ * @param {object[]} deals
+ * @param {object}   visionResults - map of dealId → vision result string
  */
 function printAllDeals(deals, visionResults = {}) {
   console.log('--- DEALS ---');
   for (const d of deals) {
-    const shortDesc = stripHtml(d.ad.description);
     const vision = visionResults[d.id];
-    const price = formatPrice({ price: d.price, currency: d.currency });
-
-    console.log(`  [${d.categoryLabel}] ${d.title} — ${price} | 📍 ${d.ad.state || '?'} (${d.ad.distance}km)`);
+    console.log(
+      `  [${d.categoryLabel}] ${d.title} — ` +
+      `${formatPrice({ price: d.price, currency: d.currency })} | ` +
+      `📍 ${d.ad.state || '?'} (${d.ad.distance}km)`,
+    );
+    const shortDesc = stripHtml(d.ad.description);
     if (shortDesc) console.log(`    📝 ${shortDesc}`);
-    if (vision) console.log(`    👁️  ${vision}`);
+    if (vision)    console.log(`    👁️  ${vision}`);
     console.log(`    ${d.url}`);
     if (d.thumbnail) console.log(`    🖼️  ${d.thumbnail}`);
     console.log();

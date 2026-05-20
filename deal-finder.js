@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('dns').setDefaultResultOrder('ipv4first');
 /**
  * Kleinanzeigen Deal Finder — daily deal notifier.
  *
@@ -30,7 +31,7 @@
 const { getCategories } = require('./src/categories');
 const { fetchCategory } = require('./src/fetch');
 const { runVisionAnalysis } = require('./src/vision');
-const { reportDeals, printAllDeals, filterByVision } = require('./src/format');
+const { reportDeals, printAllDeals } = require('./src/format');
 const { loadSeenIds, markSeen, clearSeen } = require('./src/seen');
 const { sleep } = require('./src/api');
 const { LOCATION_ID } = require('./src/constants');
@@ -40,8 +41,9 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dryRun=true');
   const resetSeen = args.includes('--reset-seen');
-  const doAnalyzeImages = args.includes('--analyze-images');
   const categories = getCategories();
+  // Auto-enable vision analysis if any category has minScore (requires vision filtering)
+  const doAnalyzeImages = args.includes('--analyze-images') || categories.some(c => c.minScore);
 
   if (args.includes('--categories')) {
     console.log('Configured categories:');
@@ -103,11 +105,19 @@ async function main() {
     return;
   }
 
-  // ─── Vision analysis (optional) ───────────────────────────────────────────
+  // ─── Vision analysis (smart — only for minScore categories) ────────────────
   let visionResults = {};
   if (doAnalyzeImages) {
-    console.log();
-    visionResults = await runVisionAnalysis(allDeals);
+    // Only analyze deals from categories with a minScore threshold
+    const minScoreCatDeals = allDeals.filter(d => {
+      const cat = categories.find(c => c.label === d.categoryLabel);
+      return cat && cat.minScore;
+    });
+    if (minScoreCatDeals.length > 0) {
+      console.log();
+      console.log(`[Vision] Analyzing ${minScoreCatDeals.length} deals from minScore categories...`);
+      visionResults = await runVisionAnalysis(minScoreCatDeals);
+    }
   }
 
   // ─── Print all deals ──────────────────────────────────────────────────────
@@ -120,7 +130,18 @@ async function main() {
   }
 
   // ─── Filter & report ───────────────────────────────────────────────────────
-  const filteredDeals = filterByVision(allDeals, visionResults, doAnalyzeImages, /* minScore */ 8);
+  // For deals without minScore: accept all. For deals with minScore: apply vision filter.
+  const filteredDeals = allDeals.filter(d => {
+    const cat = categories.find(c => c.label === d.categoryLabel);
+    if (!cat || !cat.minScore) return true;
+    if (!doAnalyzeImages) return true; // no vision data available, be permissive
+    const vision = visionResults[d.id];
+    if (!vision) return false;
+    if (!vision.match(/^PHOTO\s*\|/i)) return false;
+    const match = vision.match(/(\d+)\/10/);
+    if (!match) return false;
+    return parseInt(match[1]) >= cat.minScore;
+  });
   const posted = await reportDeals(filteredDeals);
 
   // ─── Persist seen ads only after Discord webhook succeeded ─────────────────
