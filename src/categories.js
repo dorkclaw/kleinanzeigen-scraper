@@ -97,6 +97,24 @@ const ALWAYS_BONUS = [
     maxPrice: 120,
     excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'test', 'kinder', '2-rädrig', '2 rädrig', 'zweirädrig'],
   },
+  // IKEA PAX / Kleiderschränke ≥236cm tall (Ruhja request, 2026-04-11)
+  // Only post excellent deals (vision score ≥8 required)
+  {
+    query: 'pax kleiderschrank',
+    label: '🚪 IKEA PAX / Kleiderschrank (≥236cm)',
+    maxPrice: 300,
+    minHeight: 236,
+    minScore: 8,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'baby', 'kinder', 'spiegeltür', '3-türig', '2-türig', '150', '175', '200', '201', '202', '205', '拔', '儿童'],
+  },
+  {
+    query: 'regal kleiderschrank',
+    label: '🚪 Regal/Kleiderschrank (≥236cm)',
+    maxPrice: 300,
+    minHeight: 236,
+    minScore: 8,
+    excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'baby', 'kinder', 'spiegeltür', '150', '175', '200', '201', '202', '205', '低', '儿童'],
+  },
 ];
 
 const CORE_GROUPS = [
@@ -113,7 +131,7 @@ const CORE_GROUPS = [
       query: 'werkzeug',
       label: '🔧 Werkzeug',
       maxPrice: 80,
-      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad', 'playmobil', 'theo klein'],
+      excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'feinmechaniker', 'brille', 'handy', 'uhr', 'bike', 'fahrrad', 'playmobil', 'theo klein', 'denkwerkzeuge'],
     },
     {
       query: 'hantel',
@@ -128,6 +146,7 @@ const CORE_GROUPS = [
       query: 'monitor',
       label: '🖥️ Monitore',
       maxPrice: 150,
+      requireKeywords: ['4k', '4K', '3840', '2160', 'UHD'],
       excludeKeywords: ['defekt', 'kaputt', 'broken', 'suche', 'burnin', 'einbrennen', 'fleck', 'flecken', 'totale defekt', 'netbook', 'Displayfehler', 'burn in', 'burn-in', 'brennt ein', 'eingebrannt'],
     },
     {

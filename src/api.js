@@ -3,7 +3,7 @@
  * Used by both deal-finder.js and scraper.js.
  */
 const https = require('https');
-const { AUTH, USER_AGENT, BASE_URL } = require('./constants');
+const { AUTH, USER_AGENT, BASE_URL, NS } = require('./constants');
 
 /**
  * Make a GET request to the Kleinanzeigen API.
@@ -98,6 +98,95 @@ function jvStr(v) {
   return s || null;
 }
 
+/**
+ * Fetch a single ad by ID and return seller rating info.
+ * @param {string} id - Ad ID
+ * @returns {Promise<object|null>}
+ */
+function apiGetAd(id) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(BASE_URL + `/api/ads/${id}`);
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname,
+      headers: {
+        'Authorization': AUTH,
+        'User-Agent': USER_AGENT,
+        'Accept': 'application/json',
+      },
+    };
+
+    const req = https.get(options, res => {
+      if (res.statusCode === 429) {
+        setTimeout(() => apiGetAd(id).then(resolve).catch(reject), 10000);
+        return;
+      }
+      if (res.statusCode === 401) {
+        reject(new Error('Unauthorized (401) — auth may be expired'));
+        return;
+      }
+      if (res.statusCode === 404) {
+        resolve(null);
+        return;
+      }
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error(`JSON parse failed: ${data.slice(0, 200)}`));
+        }
+      });
+    });
+    req.setTimeout(30000, () => {
+      req.destroy(new Error('Request timeout'));
+    });
+    req.on('error', reject);
+  });
+}
+
+/**
+ * Extract seller satisfaction from individual ad response.
+ * Returns 'TOP', 'GUT', 'OK', 'NAJA', or null if unknown.
+ * Based on average rating (stars) and badge levels from the API.
+ */
+function getSellerSatisfaction(adValue) {
+  if (!adValue) return null;
+
+  const rating = adValue['user-rating']?.averageRating?.value;
+  const badges = adValue['userBadges']?.badges || [];
+
+  // Build badge level map
+  const badgeLevels = {};
+  for (const b of badges) {
+    if (b.name && b.level !== undefined) {
+      badgeLevels[b.name] = parseInt(b.level, 10);
+    }
+  }
+
+  // Map stars (1-5) + reliability badge (1-3) to satisfaction tier
+  // TOP: 5 stars OR 4 stars + reliability level 3
+  // GUT: 4 stars OR 3 stars + reliability >= 2
+  // OK: 3 stars OR 2 stars + reliability >= 1
+  // NAJA: 1-2 stars with no/high reliability
+  if (!rating) return null;
+
+  // Rating is on 0-1 scale (e.g. 0.67 = 3.35 stars → round to 3)
+  const stars = Math.round(parseFloat(rating) * 5);
+  const reliability = badgeLevels['reliability'] || 0;
+
+  if (stars >= 5) return 'TOP';
+  if (stars === 4 && reliability >= 3) return 'TOP';
+  if (stars === 4) return 'GUT';
+  if (stars === 3 && reliability >= 2) return 'GUT';
+  if (stars === 3) return 'OK';
+  if (stars === 2) return 'OK';
+  if (stars <= 1) return 'NAJA';
+
+  return null;
+}
+
 // ─── Picture extraction ───────────────────────────────────────────────────────
 
 /**
@@ -144,4 +233,4 @@ function extractUrl(ad) {
   return id ? `https://www.kleinanzeigen.de/s-anzeige/${id}` : null;
 }
 
-module.exports = { apiGet, sleep, jv, jvNum, jvStr, extractPictures, extractUrl };
+module.exports = { apiGet, apiGetAd, jv, jvNum, jvStr, extractPictures, extractUrl, getSellerSatisfaction, BASE_URL, AUTH, USER_AGENT, NS, sleep };
